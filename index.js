@@ -1,5 +1,6 @@
 const WebSocket = require("ws");
-const server = new WebSocket.Server({ port: 42069 });
+const port = process.env.PORT || 42069;
+const server = new WebSocket.Server({ port });
 
 const ERRORS = {
   METHOD_NOT_FOUND: {
@@ -21,26 +22,26 @@ server.on("connection", (socket) => {
       id = rest.id || 0;
 
       if (method === "subscribe") {
-        for (const streamId of params) {
-          if (!Array.isArray(subscriptions[streamId]))
-            subscriptions[streamId] = [];
-          subscriptions[streamId].push(socket);
+        for (const subId of params) {
+          if (!Array.isArray(subscriptions[subId])) subscriptions[subId] = [];
+          subscriptions[subId].push(socket);
         }
         socket.send(JSON.stringify({ id, result: "Success" }));
       } else if (method === "unsubscribe") {
-        for (const streamId of params) {
-          if (!Array.isArray(subscriptions[streamId]))
-            subscriptions[streamId] = [];
-          subscriptions[streamId] = subscriptions[streamId].filter(
+        for (const subId of params) {
+          if (!Array.isArray(subscriptions[subId])) subscriptions[subId] = [];
+          subscriptions[subId] = subscriptions[subId].filter(
             (s) => s !== socket
           );
         }
         socket.send(JSON.stringify({ id, result: "Success" }));
       } else if (method === "publish") {
-        const [streamId, data] = params;
-        if (Array.isArray(subscriptions[streamId])) {
-          for (const sub of subscriptions[streamId]) {
-            sub.send(JSON.stringify({ id: -1, result: [streamId, data] }));
+        const [subId, data] = params;
+        if (Array.isArray(subscriptions[subId])) {
+          for (const sub of subscriptions[subId]) {
+            try {
+              sub.send(JSON.stringify({ id: -1, result: [subId, data] }));
+            } catch (ex) {}
           }
         }
         socket.send(JSON.stringify({ id, result: "Success" }));
@@ -56,5 +57,13 @@ server.on("connection", (socket) => {
 
   socket.on("close", () => {
     sockets = sockets.filter((s) => s !== socket);
+    const subIds = Object.keys(subscriptions);
+    for (const subId of subIds) {
+      subscriptions[subId] = subscriptions[subId].filter((s) => s !== socket);
+    }
   });
+});
+
+server.on("listening", () => {
+  console.log(`Listening on port ${port}`);
 });
