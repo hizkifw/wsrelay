@@ -28,7 +28,8 @@ const handleMessage = ({ method, params, ...rest }, socket) => {
   } else if (method === "subscribe") {
     for (const subId of params) {
       if (!Array.isArray(subscriptions[subId])) subscriptions[subId] = [];
-      subscriptions[subId].push(socket);
+      if (!subscriptions[subId].includes(socket))
+        subscriptions[subId].push(socket);
     }
     return { id, result: "Success" };
   } else if (method === "unsubscribe") {
