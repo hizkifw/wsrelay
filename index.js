@@ -107,4 +107,11 @@ wss.on("listening", () => {
   console.log(`Listening on port ${port}`);
 });
 
+setInterval(() => {
+  handleMessage({
+    method: "publish",
+    params: ["ping", Date.now()],
+  });
+}, 5000);
+
 server.listen(port);
